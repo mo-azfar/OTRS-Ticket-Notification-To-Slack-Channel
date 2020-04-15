@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<otrs_config version="2.0" init="Application">
+    <Setting Name="TicketSlack::Queue" Required="0" Valid="1">
+        <Description Translatable="1">Defines the webhook for each Queue</Description>
+        <Navigation>SlackWebhook</Navigation>
+        <Value>
+            <Hash>
+                <Item Key="Misc">https://hooks.slack.com/services/TDT21LXXX</Item>
+                <Item Key="Postmaster">https://hooks.slack.com/services/TDTXX23424h</Item>
+                <Item Key="Helpdesk">https://hooks.slack.com/services/TDT21L09K/B01XXX3443</Item>
+            </Hash>
+        </Value>
+    </Setting>
+</otrs_config>
