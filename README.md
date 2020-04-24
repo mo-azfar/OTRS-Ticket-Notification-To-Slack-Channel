@@ -1,7 +1,7 @@
 # OTRS-Ticket-Notification-To-Slack-Channel
 - Built for OTRS CE v 6.0.x
-- Send a notification to Slack Channel upon ticket action. E.g: TicketQueueUpdate
-- **Require CustomMessage module**  
+- Send a notification to Slack Channel upon ticket action. E.g: TicketQueueUpdate  
+- **Require CustomMessage module**
 
 1. Create incoming webhook (app) and get the Webhook URL for each channel. Reference: https://api.slack.com/messaging/webhooks#getting_started  
 
