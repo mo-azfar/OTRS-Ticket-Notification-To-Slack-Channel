@@ -3,8 +3,6 @@
 # did not receive this file, see http://www.gnu.org/licenses/agpl.txt.
 # --
 #Send a notification to Slack Channel upon ticket action. E.g: TicketQueueUpdate
-#20200419 - Using Task scheduler instead direct sending
-#		  - Built self API for sending telegram (using LWP). 
 package Kernel::System::Ticket::Event::TicketSlack;
 
 use strict;
@@ -17,11 +15,6 @@ use lib dirname($RealBin);
 
 use Data::Dumper;
 use Fcntl qw(:flock SEEK_END);
-use LWP::UserAgent;
-use HTTP::Request::Common;
-use JSON::MaybeXS;
-#yum install -y perl-LWP-Protocol-https
-#yum install -y perl-JSON-MaybeXS
 
 our @ObjectDependencies = (
     'Kernel::System::Ticket',
@@ -199,8 +192,8 @@ sub Run {
 			MaximumParallelInstances =>  0,
 			Data                     => 
 			{
-				Object   => 'Kernel::System::Ticket::Event::TicketSlack',
-				Function => 'SendMessageSlack',
+				Object   => 'Kernel::System::CustomMessage',
+				Function => 'SendMessageSlackChannel',
 				Params   => 
 						{
 							SlackWebhookURL	=>	$SlackWebhookURL,
@@ -217,90 +210,6 @@ sub Run {
 			},
 		);
 		
-	}
-}
-
-
-=cut
-
-		my $Test = $Self->SendMessageSlack(
-						SlackWebhookURL	=>	$SlackWebhookURL,
-						TicketURL	=>	$TicketURL,
-						TicketNumber	=>	$Ticket{TicketNumber},
-						MessageText	=>	$MessageText1,
-						Created	=> $DateTimeString,
-						Queue	=> $Ticket{Queue},
-						Service	=>	$Ticket{Service},
-						Priority=>	$Ticket{Priority},	
-						TicketID      => $TicketID, #sent for log purpose
-		);
-
-=cut
-
-sub SendMessageSlack {
-	my ( $Self, %Param ) = @_;
-
-	my $ua = LWP::UserAgent->new;
-	utf8::decode($Param{MessageText});
-	
-	my $params = {
-       "blocks"=> [
-	{
-		"type" => "section",
-		"text" => {
-			"type" => "mrkdwn",
-			"text" => "*<$Param{TicketURL}|OTRS#$Param{TicketNumber}>*\n\n$Param{MessageText}"
-		}
-	},
-	{
-		"type" => "section",
-		"fields" => [
-			{
-				"type" => "mrkdwn",
-				"text" => "*Created:*\n$Param{Created}"
-			},
-			{
-				"type" => "mrkdwn",
-				"text" => "*Queue:*\n$Param{Queue}"
-			},
-			{
-				"type" => "mrkdwn",
-				"text" => "*Service:*\n$Param{Service}"
-			},
-			{
-				"type" => "mrkdwn",
-				"text" => "*Priority:*\n$Param{Priority}"
-			}
-		]
-	}
-	]
-	};
-		  
-	my $response = $ua->request(
-		POST $Param{SlackWebhookURL},
-		Content_Type    => 'application/json',
-		Content         => JSON::MaybeXS::encode_json($params)
-	)	;
-	
-	my $content  = $response->decoded_content();
-	my $resCode =$response->code();
-
-	if ($resCode ne 200)
-	{
-	$Kernel::OM->Get('Kernel::System::Log')->Log(
-			 Priority => 'error',
-			 Message  => "Slack notification for Queue $Param{Queue}: $resCode $content",
-		);
-	}
-	else
-	{
-	my $TicketObject = $Kernel::OM->Get('Kernel::System::Ticket');
-	my $TicketHistory = $TicketObject->HistoryAdd(
-        TicketID     => $Param{TicketID},
-        HistoryType  => 'SendAgentNotification',
-        Name         => "Sent Slack Notification for Queue $Param{Queue}",
-        CreateUserID => 1,
-		);			
 	}
 }
 
