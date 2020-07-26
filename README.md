@@ -33,6 +33,9 @@
 		[Mandatory][Param 1 Value] : Text to be sent to the channel.
 		[Optional][Param 2 Key] : Text2  
 		[Optional][Param 2 Value] : Additional text to be sent to the channel.
+		
+		#Support OTRS ticket TAG only. bold, newline must be in HTML code.  
+		#Support <OTRS_NOTIFICATION_RECIPIENT_UserFullname>, <OTRS_OWNER_UserFullname>, <OTRS_RESPONSIBLE_UserFullname> and <OTRS_CUSTOMER_UserFullname> tag.
 
   
 [![download.png](https://i.postimg.cc/KvPLgkSG/download.png)](https://postimg.cc/56tjht2T)
