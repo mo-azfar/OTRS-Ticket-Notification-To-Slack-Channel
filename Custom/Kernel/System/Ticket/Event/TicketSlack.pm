@@ -13,8 +13,9 @@ use File::Basename;
 use FindBin qw($RealBin);
 use lib dirname($RealBin);
 
-#use Data::Dumper;
-#use Fcntl qw(:flock SEEK_END);
+use JSON::MaybeXS;
+use LWP::UserAgent;			#yum install -y perl-LWP-Protocol-https
+use HTTP::Request::Common;	#yum install -y perl-JSON-MaybeXS
 
 our @ObjectDependencies = (
     'Kernel::System::Ticket',
@@ -192,7 +193,7 @@ sub Run {
 			MaximumParallelInstances =>  0,
 			Data                     => 
 			{
-				Object   => 'Kernel::System::CustomMessage',
+				Object   => 'Kernel::System::Ticket::Event::TicketSlack',
 				Function => 'SendMessageSlackChannel',
 				Params   => 
 						{
@@ -210,6 +211,100 @@ sub Run {
 			},
 		);
 		
+	}
+}
+
+=cut
+
+		my $Test = $Self->SendMessageSlack(
+						SlackWebhookURL	=>	$SlackWebhookURL,
+						TicketURL	=>	$TicketURL,
+						TicketNumber	=>	$Ticket{TicketNumber},
+						MessageText	=>	$MessageText1,
+						Created	=> $DateTimeString,
+						Queue	=> $Ticket{Queue},
+						Service	=>	$Ticket{Service},
+						Priority=>	$Ticket{Priority},	
+						TicketID      => $TicketID, #sent for log purpose
+		);
+
+=cut
+
+sub SendMessageSlackChannel {
+	my ( $Self, %Param ) = @_;
+
+	# check for needed stuff
+    for my $Needed (qw(SlackWebhookURL TicketURL TicketNumber MessageText Created Queue Priority TicketID)) {
+        if ( !$Param{$Needed} ) {
+            $Kernel::OM->Get('Kernel::System::Log')->Log(
+                Priority => 'error',
+                Message  => "Missing parameter $Needed!",
+            );
+            return;
+        }
+    }
+	
+	my $ua = LWP::UserAgent->new;
+	utf8::decode($Param{MessageText});
+	
+	my $params = {
+       "blocks"=> [
+	{
+		"type" => "section",
+		"text" => {
+			"type" => "mrkdwn",
+			"text" => "*<$Param{TicketURL}|OTRS#$Param{TicketNumber}>*\n\n$Param{MessageText}"
+		}
+	},
+	{
+		"type" => "section",
+		"fields" => [
+			{
+				"type" => "mrkdwn",
+				"text" => "*Created:*\n$Param{Created}"
+			},
+			{
+				"type" => "mrkdwn",
+				"text" => "*Queue:*\n$Param{Queue}"
+			},
+			{
+				"type" => "mrkdwn",
+				"text" => "*Service:*\n$Param{Service}"
+			},
+			{
+				"type" => "mrkdwn",
+				"text" => "*Priority:*\n$Param{Priority}"
+			}
+		]
+	}
+	]
+	};
+		  
+	my $response = $ua->request(
+		POST $Param{SlackWebhookURL},
+		Content_Type    => 'application/json',
+		Content         => JSON::MaybeXS::encode_json($params)
+	)	;
+	
+	my $content  = $response->decoded_content();
+	my $resCode =$response->code();
+
+	if ($resCode ne 200)
+	{
+	$Kernel::OM->Get('Kernel::System::Log')->Log(
+			 Priority => 'error',
+			 Message  => "Slack notification for Queue $Param{Queue}: $resCode $content",
+		);
+	}
+	else
+	{
+	my $TicketObject = $Kernel::OM->Get('Kernel::System::Ticket');
+	my $TicketHistory = $TicketObject->HistoryAdd(
+        TicketID     => $Param{TicketID},
+        HistoryType  => 'SendAgentNotification',
+        Name         => "Sent Slack Notification for Queue $Param{Queue}",
+        CreateUserID => 1,
+		);			
 	}
 }
 
